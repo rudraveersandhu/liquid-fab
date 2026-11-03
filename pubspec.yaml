@@ -1,0 +1,29 @@
+name: liquid_fab
+description: >-
+  A floating action button drawn as a glossy liquid ball whose edge ripples
+  with seamless travelling waves. Fully customisable shape, motion, colours,
+  halo, shadow, gloss and rim.
+version: 0.1.0
+# TODO(release): set homepage/repository once the package has a public repo.
+# TODO(licence): add a LICENSE file once the licence is chosen.
+topics:
+  - fab
+  - button
+  - animation
+  - custom-painter
+  - ui
+
+environment:
+  sdk: ^3.7.0
+  flutter: ">=3.29.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
