@@ -211,5 +211,4 @@ flutter run -d chrome
 
 ## Licence
 
-<!-- TODO(licence): name the licence once it is chosen and add LICENSE. -->
-Licence to be decided.
+BSD 3-Clause. See [LICENSE](LICENSE).

@@ -5,7 +5,6 @@ description: >-
   halo, shadow, gloss and rim.
 version: 0.1.0
 # TODO(release): set homepage/repository once the package has a public repo.
-# TODO(licence): add a LICENSE file once the licence is chosen.
 topics:
   - fab
   - button
