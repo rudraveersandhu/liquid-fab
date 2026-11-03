@@ -24,6 +24,15 @@ final _ballPaint = find.byWidgetPredicate(
 LiquidFabPainter _painter(WidgetTester tester) =>
     tester.widget<CustomPaint>(_ballPaint).painter! as LiquidFabPainter;
 
+// The button's own node, below the fade and exclusion wrappers.
+final _buttonSemantics =
+    find
+        .descendant(
+          of: find.byType(LiquidFab),
+          matching: find.byType(Semantics),
+        )
+        .first;
+
 double _scale(WidgetTester tester) =>
     tester
         .widget<AnimatedScale>(
@@ -40,7 +49,7 @@ void main() {
 
     expect(_ballPaint, findsOneWidget);
     expect(find.byIcon(Icons.chat_bubble_rounded), findsOneWidget);
-    expect(tester.getSize(find.byType(LiquidFab)), const Size(82, 82));
+    expect(tester.getSize(find.byType(LiquidFab)), const Size(86, 86));
   });
 
   testWidgets('size follows diameter and padding', (tester) async {
@@ -90,7 +99,63 @@ void main() {
     expect(haptics, hasLength(1));
   });
 
-  testWidgets('press scales down, release restores', (tester) async {
+  testWidgets('by default a press darkens without scaling', (tester) async {
+    await tester.pumpWidget(_host(LiquidFab(onTap: () {})));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(LiquidFab)),
+    );
+    await tester.pump();
+    expect(_scale(tester), 1.0);
+    expect(_painter(tester).pressed, isTrue);
+    await gesture.up();
+    await tester.pump();
+    expect(_painter(tester).pressed, isFalse);
+  });
+
+  testWidgets('by default hover lights up without scaling', (tester) async {
+    await tester.pumpWidget(_host(LiquidFab(onTap: () {})));
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(tester.getCenter(find.byType(LiquidFab)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final midway = _painter(tester).hover;
+    expect(midway, inExclusiveRange(0, 1));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(_painter(tester).hover, 1);
+    expect(_scale(tester), 1.0);
+  });
+
+  testWidgets('visible: false fades out, ignores taps and stops', (
+    tester,
+  ) async {
+    var taps = 0;
+    Widget fab(bool visible) =>
+        _host(LiquidFab(onTap: () => taps++, visible: visible));
+    await tester.pumpWidget(fab(false));
+    await tester.pumpAndSettle();
+    expect(tester.binding.hasScheduledFrame, isFalse);
+    final opacity = tester.widget<AnimatedOpacity>(
+      find.descendant(
+        of: find.byType(LiquidFab),
+        matching: find.byType(AnimatedOpacity),
+      ),
+    );
+    expect(opacity.opacity, 0);
+    await tester.tap(find.byType(LiquidFab), warnIfMissed: false);
+    expect(taps, 0);
+
+    await tester.pumpWidget(fab(true));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.binding.hasScheduledFrame, isTrue);
+    await tester.tap(find.byType(LiquidFab));
+    expect(taps, 1);
+  });
+
+  testWidgets('opt-in press scale scales down, release restores', (
+    tester,
+  ) async {
     await tester.pumpWidget(_host(LiquidFab(onTap: () {}, pressScale: 0.9)));
     final gesture = await tester.startGesture(
       tester.getCenter(find.byType(LiquidFab)),
@@ -206,7 +271,7 @@ void main() {
 
     final handle = tester.ensureSemantics();
     expect(
-      tester.getSemantics(find.byType(LiquidFab)),
+      tester.getSemantics(_buttonSemantics),
       isSemantics(isButton: true, isEnabled: false, hasTapAction: false),
     );
     handle.dispose();
@@ -227,7 +292,7 @@ void main() {
     await tester.pumpWidget(fab(true));
     expect(find.bySemanticsLabel('Close chat'), findsOneWidget);
     expect(
-      tester.getSemantics(find.byType(LiquidFab)),
+      tester.getSemantics(_buttonSemantics),
       isSemantics(
         label: 'Close chat',
         isButton: true,

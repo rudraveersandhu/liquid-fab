@@ -7,8 +7,8 @@ import 'package:flutter/painting.dart';
 
 import 'liquid_wave.dart';
 
-/// The look of a [LiquidFab]: shape, motion, colours, halo, shadow, gloss and
-/// rim.
+/// The look of a [LiquidFab]: shape, motion, colours, halo, hover and press
+/// light, gloss, rim and an optional shadow.
 ///
 /// Immutable, with [copyWith] and [lerp], so it can be animated (the
 /// [LiquidFab] widget animates between styles on its own; see also
@@ -29,16 +29,20 @@ class LiquidFabStyle with Diagnosticable {
     this.coreRatio = 0.97,
     this.waves = defaultWaves,
     this.pointCount = 240,
-    this.breathAmount = 0.025,
+    this.breathAmount = 0,
     this.breathCycles = 2,
     this.haloColor,
     this.haloOpacity = 0.38,
     this.haloBlur = 22,
     this.haloHoverBoost = 1.35,
-    this.showShadow = true,
+    this.hoverOverlayColor = const Color(0xFFFFFFFF),
+    this.hoverOverlayOpacity = 0.07,
+    this.pressOverlayColor = const Color(0xFF000000),
+    this.pressOverlayOpacity = 0.12,
+    this.showShadow = false,
     this.shadowColor,
     this.elevation = 16,
-    this.hoverElevation = 20,
+    this.hoverElevation = 16,
     this.showGloss = true,
     this.glossColor = const Color(0xFFFFFFFF),
     this.glossOpacity = 0.34,
@@ -62,6 +66,14 @@ class LiquidFabStyle with Diagnosticable {
        ),
        assert(haloBlur >= 0, 'haloBlur must be zero or more'),
        assert(haloHoverBoost >= 0, 'haloHoverBoost must be zero or more'),
+       assert(
+         hoverOverlayOpacity >= 0 && hoverOverlayOpacity <= 1,
+         'hoverOverlayOpacity must be in [0, 1]',
+       ),
+       assert(
+         pressOverlayOpacity >= 0 && pressOverlayOpacity <= 1,
+         'pressOverlayOpacity must be in [0, 1]',
+       ),
        assert(elevation >= 0, 'elevation must be zero or more'),
        assert(hoverElevation >= 0, 'hoverElevation must be zero or more'),
        assert(
@@ -75,7 +87,7 @@ class LiquidFabStyle with Diagnosticable {
        );
 
   /// Builds a full style from one [color]: a four-stop ramp from a lit tint
-  /// to a shaded edge, with a halo, shadow and rim to match.
+  /// to a shaded edge, with a halo and rim to match.
   ///
   /// Any other field can be passed through to override the derived look.
   factory LiquidFabStyle.fromColor(
@@ -93,7 +105,7 @@ class LiquidFabStyle with Diagnosticable {
         _shiftLightness(color, -0.13),
       ],
       haloColor: haloColor ?? _shiftLightness(color, 0.12),
-      shadowColor: shadowColor ?? color,
+      shadowColor: shadowColor,
       rimColor: rimColor ?? _shiftLightness(color, 0.36),
       iconColor: iconColor,
     );
@@ -111,7 +123,6 @@ class LiquidFabStyle with Diagnosticable {
         ],
         haloColor: const Color(0xFFBF3636),
         haloOpacity: 0.38,
-        shadowColor: const Color(0xFF9B1C1C),
         rimColor: const Color(0xFFEE8A82),
         rimOpacity: 0.6,
       );
@@ -127,7 +138,6 @@ class LiquidFabStyle with Diagnosticable {
         ],
         haloColor: const Color(0xFF9B1C1C),
         haloOpacity: 0.32,
-        shadowColor: const Color(0xFF000000),
         rimColor: const Color(0xFFBF3636),
         rimOpacity: 0.7,
       );
@@ -146,7 +156,6 @@ class LiquidFabStyle with Diagnosticable {
         ],
         haloColor: const Color(0xFF5F656E),
         haloOpacity: 0.3,
-        shadowColor: const Color(0xFF000000),
         rimColor: const Color(0xFFB8BEC6),
         rimOpacity: 0.5,
       );
@@ -161,11 +170,8 @@ class LiquidFabStyle with Diagnosticable {
           Color(0xFFDAD6D0),
           Color(0xFFADA79F),
         ],
-        haloColor: const Color(0xFFFFFFFF),
-        haloOpacity: 0.28,
-        shadowColor: const Color(0xFF3A3630),
-        elevation: 12,
-        hoverElevation: 16,
+        haloColor: const Color(0xFF8A8278),
+        haloOpacity: 0.25,
         glossOpacity: 0.6,
         rimColor: const Color(0xFFFFFFFF),
         rimOpacity: 0.8,
@@ -182,9 +188,9 @@ class LiquidFabStyle with Diagnosticable {
   /// The default edge motion: three shallow travelling waves (3, 4 and 2
   /// lobes, moving +2, −2 and +1 cycles per loop). Round, but alive.
   static const defaultWaves = [
-    LiquidWave(lobes: 3, depth: 0.010, speed: 2),
-    LiquidWave(lobes: 4, depth: 0.006, speed: -2),
-    LiquidWave(lobes: 2, depth: 0.0035, speed: 1),
+    LiquidWave(lobes: 3, depth: 0.013, speed: 2),
+    LiquidWave(lobes: 4, depth: 0.008, speed: -2),
+    LiquidWave(lobes: 2, depth: 0.0045, speed: 1),
   ];
 
   /// Surface gradient colours, from the lit highlight to the shaded edge.
@@ -231,7 +237,20 @@ class LiquidFabStyle with Diagnosticable {
   /// Multiplier on [haloOpacity] while hovered.
   final double haloHoverBoost;
 
-  /// Whether to draw the floating shadow.
+  /// Colour washed over the surface while hovered.
+  final Color hoverOverlayColor;
+
+  /// Opacity of [hoverOverlayColor] when fully hovered. `0` turns it off.
+  final double hoverOverlayOpacity;
+
+  /// Colour washed over the surface while pressed.
+  final Color pressOverlayColor;
+
+  /// Opacity of [pressOverlayColor] while pressed. `0` turns it off.
+  final double pressOverlayOpacity;
+
+  /// Whether to draw a floating drop shadow. Off by default: the halo already
+  /// lifts the ball.
   final bool showShadow;
 
   /// Colour of the floating shadow. Null uses the second-darkest of
@@ -241,7 +260,8 @@ class LiquidFabStyle with Diagnosticable {
   /// Shadow elevation at rest.
   final double elevation;
 
-  /// Shadow elevation while hovered.
+  /// Shadow elevation while hovered. The same as [elevation] by default, so
+  /// hover answers with light only.
   final double hoverElevation;
 
   /// Whether to draw the glossy highlight.
@@ -333,6 +353,10 @@ class LiquidFabStyle with Diagnosticable {
     double? haloOpacity,
     double? haloBlur,
     double? haloHoverBoost,
+    Color? hoverOverlayColor,
+    double? hoverOverlayOpacity,
+    Color? pressOverlayColor,
+    double? pressOverlayOpacity,
     bool? showShadow,
     Color? shadowColor,
     double? elevation,
@@ -366,6 +390,10 @@ class LiquidFabStyle with Diagnosticable {
       haloOpacity: haloOpacity ?? this.haloOpacity,
       haloBlur: haloBlur ?? this.haloBlur,
       haloHoverBoost: haloHoverBoost ?? this.haloHoverBoost,
+      hoverOverlayColor: hoverOverlayColor ?? this.hoverOverlayColor,
+      hoverOverlayOpacity: hoverOverlayOpacity ?? this.hoverOverlayOpacity,
+      pressOverlayColor: pressOverlayColor ?? this.pressOverlayColor,
+      pressOverlayOpacity: pressOverlayOpacity ?? this.pressOverlayOpacity,
       showShadow: showShadow ?? this.showShadow,
       shadowColor: shadowColor ?? this.shadowColor,
       elevation: elevation ?? this.elevation,
@@ -422,6 +450,14 @@ class LiquidFabStyle with Diagnosticable {
       haloOpacity: lerpDouble(a.haloOpacity, b.haloOpacity, t)!,
       haloBlur: lerpDouble(a.haloBlur, b.haloBlur, t)!,
       haloHoverBoost: lerpDouble(a.haloHoverBoost, b.haloHoverBoost, t)!,
+      hoverOverlayColor:
+          Color.lerp(a.hoverOverlayColor, b.hoverOverlayColor, t)!,
+      hoverOverlayOpacity:
+          lerpDouble(a.hoverOverlayOpacity, b.hoverOverlayOpacity, t)!,
+      pressOverlayColor:
+          Color.lerp(a.pressOverlayColor, b.pressOverlayColor, t)!,
+      pressOverlayOpacity:
+          lerpDouble(a.pressOverlayOpacity, b.pressOverlayOpacity, t)!,
       showShadow: a.showShadow || b.showShadow,
       shadowColor: Color.lerp(shadowA, shadowB, t),
       elevation: lerpDouble(a.elevation, b.elevation, t)!,
@@ -517,6 +553,10 @@ class LiquidFabStyle with Diagnosticable {
         other.haloOpacity == haloOpacity &&
         other.haloBlur == haloBlur &&
         other.haloHoverBoost == haloHoverBoost &&
+        other.hoverOverlayColor == hoverOverlayColor &&
+        other.hoverOverlayOpacity == hoverOverlayOpacity &&
+        other.pressOverlayColor == pressOverlayColor &&
+        other.pressOverlayOpacity == pressOverlayOpacity &&
         other.showShadow == showShadow &&
         other.shadowColor == shadowColor &&
         other.elevation == elevation &&
@@ -547,6 +587,10 @@ class LiquidFabStyle with Diagnosticable {
     haloOpacity,
     haloBlur,
     haloHoverBoost,
+    hoverOverlayColor,
+    hoverOverlayOpacity,
+    pressOverlayColor,
+    pressOverlayOpacity,
     showShadow,
     shadowColor,
     elevation,

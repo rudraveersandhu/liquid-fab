@@ -5,7 +5,7 @@ import 'liquid_fab_painter.dart';
 import 'liquid_fab_style.dart';
 
 /// A floating action button drawn as a glossy liquid ball whose edge ripples
-/// gently and which breathes slowly.
+/// gently. The ball itself never changes size: only the edge moves.
 ///
 /// ```dart
 /// LiquidFab(
@@ -16,15 +16,17 @@ import 'liquid_fab_style.dart';
 /// ```
 ///
 /// It shows [child] (a chat bubble by default) and swaps to [openChild] (a
-/// close mark by default) with a spin and fade when [open] is true. Hovering
-/// raises the halo and shadow and scales it up a little; pressing scales it
-/// down. When [style] changes it animates to the new one over
+/// close mark by default) with a spin and fade when [open] is true. Hover
+/// answers with light (a brighter halo and a faint white wash over
+/// [hoverDuration]); a press darkens the surface. Scaling on hover or press
+/// is opt-in through [hoverScale] and [pressScale]. [visible] fades the
+/// button in and out. When [style] changes it animates to the new one over
 /// [styleDuration].
 ///
-/// The ripple and breath stop when [playing] is false, and, unless
+/// The ripple (and the breath, if [LiquidFabStyle.breathAmount] is set) stops when [playing] is false, and, unless
 /// [respectReduceMotion] is false, when the platform asks for reduced motion
-/// ([MediaQueryData.disableAnimations]). The loop is seamless: every wave
-/// and the breath complete a whole number of cycles per [loopDuration].
+/// ([MediaQueryData.disableAnimations]), or while hidden. The loop is
+/// seamless: every wave and the breath complete a whole number of cycles per [loopDuration].
 ///
 /// The widget's box is `diameter + 2 * padding` square; the padding leaves
 /// room for the ripple, the breath and the start of the halo, which can paint
@@ -38,13 +40,18 @@ class LiquidFab extends StatefulWidget {
     this.child,
     this.openChild,
     this.style = const LiquidFabStyle(),
-    this.diameter = 62,
+    this.diameter = 66,
     this.padding = 10,
-    this.loopDuration = const Duration(seconds: 9),
+    this.loopDuration = const Duration(milliseconds: 7500),
     this.playing = true,
     this.respectReduceMotion = true,
-    this.hoverScale = 1.06,
-    this.pressScale = 0.93,
+    this.visible = true,
+    this.visibilityDuration = const Duration(milliseconds: 200),
+    this.visibilityCurve = Curves.easeOut,
+    this.hoverDuration = const Duration(milliseconds: 200),
+    this.hoverCurve = Curves.easeOutCubic,
+    this.hoverScale = 1,
+    this.pressScale = 1,
     this.scaleDuration = const Duration(milliseconds: 160),
     this.scaleCurve = Curves.easeOutCubic,
     this.swapDuration = const Duration(milliseconds: 220),
@@ -95,16 +102,33 @@ class LiquidFab extends StatefulWidget {
   /// Whether to hold still when the platform asks for reduced motion.
   final bool respectReduceMotion;
 
-  /// Scale while hovered (pointer devices).
+  /// Whether the button is shown. Changes fade over [visibilityDuration];
+  /// while hidden it ignores input, drops out of the semantics tree and
+  /// stops its ripple.
+  final bool visible;
+
+  /// Duration of the fade when [visible] changes.
+  final Duration visibilityDuration;
+
+  /// Curve of the fade when [visible] changes.
+  final Curve visibilityCurve;
+
+  /// How long the hover light takes to come up or die down.
+  final Duration hoverDuration;
+
+  /// Curve of the hover light.
+  final Curve hoverCurve;
+
+  /// Scale while hovered or focused. `1` (the default) keeps the size fixed.
   final double hoverScale;
 
-  /// Scale while pressed.
+  /// Scale while pressed. `1` (the default) keeps the size fixed.
   final double pressScale;
 
-  /// Duration of the hover and press scale and of the hover glow.
+  /// Duration of the opt-in hover and press scale.
   final Duration scaleDuration;
 
-  /// Curve of the hover and press scale.
+  /// Curve of the opt-in hover and press scale.
   final Curve scaleCurve;
 
   /// Duration of the swap between [child] and [openChild].
@@ -180,7 +204,7 @@ class _LiquidFabState extends State<LiquidFab>
       // A running repeat keeps its old period until restarted.
       if (_flow.isAnimating) _flow.repeat();
     }
-    if (!_enabled) {
+    if (!_enabled || !widget.visible) {
       _hover = false;
       _pressed = false;
     }
@@ -191,7 +215,7 @@ class _LiquidFabState extends State<LiquidFab>
     final reduce =
         widget.respectReduceMotion &&
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    final still = reduce || !widget.playing;
+    final still = reduce || !widget.playing || !widget.visible;
     if (still && _flow.isAnimating) {
       _flow.stop();
     } else if (!still && !_flow.isAnimating) {
@@ -253,8 +277,8 @@ class _LiquidFabState extends State<LiquidFab>
         final style = animatedStyle!;
         return TweenAnimationBuilder<double>(
           tween: Tween<double>(end: lit ? 1 : 0),
-          duration: widget.scaleDuration,
-          curve: Curves.easeOut,
+          duration: widget.hoverDuration,
+          curve: widget.hoverCurve,
           builder:
               (context, hover, child) => AnimatedBuilder(
                 animation: _flow,
@@ -266,6 +290,7 @@ class _LiquidFabState extends State<LiquidFab>
                           progress: _flow.value,
                           style: style,
                           hover: hover.clamp(0.0, 1.0),
+                          pressed: _pressed,
                           padding: widget.padding,
                         ),
                         child: child,
@@ -346,6 +371,17 @@ class _LiquidFabState extends State<LiquidFab>
     if (widget.tooltip != null) {
       ball = Tooltip(message: widget.tooltip, child: ball);
     }
-    return ball;
+    return AnimatedOpacity(
+      opacity: widget.visible ? 1 : 0,
+      duration: widget.visibilityDuration,
+      curve: widget.visibilityCurve,
+      child: IgnorePointer(
+        ignoring: !widget.visible,
+        child: ExcludeFocus(
+          excluding: !widget.visible,
+          child: ExcludeSemantics(excluding: !widget.visible, child: ball),
+        ),
+      ),
+    );
   }
 }

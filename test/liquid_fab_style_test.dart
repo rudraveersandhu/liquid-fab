@@ -25,11 +25,13 @@ void main() {
     expect(s.coreRatio, 0.97);
     expect(s.waves.map((w) => w.lobes), [3, 4, 2]);
     expect(s.waves.map((w) => w.speed), [2, -2, 1]);
-    expect(s.waves.map((w) => w.depth), [0.010, 0.006, 0.0035]);
-    expect(s.breathAmount, 0.025);
+    expect(s.waves.map((w) => w.depth), [0.013, 0.008, 0.0045]);
+    expect(s.breathAmount, 0, reason: 'the ball never changes size');
     expect(s.haloBlur, 22);
-    expect(s.elevation, 16);
-    expect(s.hoverElevation, 20);
+    expect(s.haloHoverBoost, 1.35);
+    expect(s.hoverOverlayOpacity, 0.07);
+    expect(s.pressOverlayOpacity, 0.12);
+    expect(s.showShadow, isFalse);
   });
 
   test('fromColor derives a light-to-dark ramp around the colour', () {
@@ -41,7 +43,6 @@ void main() {
     expect(l(s.colors[0]), greaterThan(l(s.colors[1])));
     expect(l(s.colors[1]), greaterThan(l(s.colors[2])));
     expect(l(s.colors[2]), greaterThan(l(s.colors[3])));
-    expect(s.effectiveShadowColor, base);
   });
 
   test('fallback colours come from the gradient', () {
@@ -110,7 +111,7 @@ void main() {
       final deep = a.copyWith(waves: [for (final w in a.waves) w.scaled(3)]);
       final m = LiquidFabStyle.lerp(a, deep, 0.5)!;
       expect(m.waves, hasLength(3));
-      expect(m.waves.first.depth, closeTo(0.02, 1e-9));
+      expect(m.waves.first.depth, closeTo(a.waves.first.depth * 2, 1e-9));
     });
 
     test('unpaired waves cross-fade and keep integer speeds', () {
@@ -120,13 +121,13 @@ void main() {
       final m = LiquidFabStyle.lerp(a, other, 0.25)!;
       expect(m.waves, hasLength(4));
       expect(m.waves.last.depth, closeTo(0.005, 1e-9));
-      expect(m.waves.first.depth, closeTo(0.0075, 1e-9));
+      expect(m.waves.first.depth, closeTo(a.waves.first.depth * 0.75, 1e-9));
       expect(m.maxExtent, lessThanOrEqualTo(1));
     });
 
     test('a shadow turning off fades out', () {
-      final none = a.copyWith(showShadow: false);
-      final m = LiquidFabStyle.lerp(a, none, 0.5)!;
+      final on = a.copyWith(showShadow: true);
+      final m = LiquidFabStyle.lerp(on, a, 0.5)!;
       expect(m.showShadow, isTrue);
       expect(m.effectiveShadowColor.a, closeTo(0.5, 0.01));
     });

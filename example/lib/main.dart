@@ -40,20 +40,23 @@ class _Home extends StatefulWidget {
 class _HomeState extends State<_Home> {
   // Playground state.
   String _preset = 'crimson';
-  double _diameter = 62;
-  double _loopSeconds = 9;
-  double _breath = 0.025;
+  double _diameter = 66;
+  double _loopSeconds = 7.5;
+  double _breath = 0;
   double _waveScale = 1;
   double _core = 0.97;
   double _haloOpacity = 0.38;
   double _haloBlur = 22;
   double _elevation = 16;
-  bool _shadow = true;
+  bool _shadow = false;
   bool _gloss = true;
   double _glossOpacity = 0.34;
   double _rimWidth = 1.2;
-  double _hoverScale = 1.06;
-  double _pressScale = 0.93;
+  double _hoverLight = 0.07;
+  double _pressDark = 0.12;
+  double _hoverScale = 1;
+  double _pressScale = 1;
+  bool _visible = true;
   bool _playing = true;
   bool _respectReduceMotion = true;
   bool _haptics = true;
@@ -70,7 +73,9 @@ class _HomeState extends State<_Home> {
       haloBlur: _haloBlur,
       showShadow: _shadow,
       elevation: _elevation,
-      hoverElevation: _elevation + 4,
+      hoverElevation: _elevation,
+      hoverOverlayOpacity: _hoverLight,
+      pressOverlayOpacity: _pressDark,
       showGloss: _gloss,
       glossOpacity: _glossOpacity,
       rimWidth: _rimWidth,
@@ -112,6 +117,7 @@ class _HomeState extends State<_Home> {
                 milliseconds: (_loopSeconds * 1000).round(),
               ),
               playing: _playing,
+              visible: _visible,
               respectReduceMotion: _respectReduceMotion,
               enableHaptics: _haptics,
               hoverScale: _hoverScale,
@@ -175,6 +181,8 @@ class _HomeState extends State<_Home> {
       _slider('Elevation', _elevation, 0, 30, (v) => _elevation = v),
       _slider('Gloss', _glossOpacity, 0, 1, (v) => _glossOpacity = v),
       _slider('Rim width', _rimWidth, 0, 4, (v) => _rimWidth = v),
+      _slider('Hover light', _hoverLight, 0, 0.3, (v) => _hoverLight = v),
+      _slider('Press dark', _pressDark, 0, 0.4, (v) => _pressDark = v),
       _slider('Hover scale', _hoverScale, 1, 1.3, (v) => _hoverScale = v),
       _slider('Press scale', _pressScale, 0.7, 1, (v) => _pressScale = v),
       Wrap(
@@ -183,6 +191,7 @@ class _HomeState extends State<_Home> {
         children: [
           _chip('Playing', _playing, (v) => _playing = v),
           _chip('Open', _open, (v) => _open = v),
+          _chip('Visible', _visible, (v) => _visible = v),
           _chip('Shadow', _shadow, (v) => _shadow = v),
           _chip('Gloss', _gloss, (v) => _gloss = v),
           _chip('Haptics', _haptics, (v) => _haptics = v),

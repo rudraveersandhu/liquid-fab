@@ -28,6 +28,10 @@ void main() {
         isTrue,
       );
       expect(
+        base.shouldRepaint(LiquidFabPainter(progress: 0.2, pressed: true)),
+        isTrue,
+      );
+      expect(
         base.shouldRepaint(LiquidFabPainter(progress: 0.2, padding: 4)),
         isTrue,
       );
@@ -116,6 +120,28 @@ void main() {
     expect(px(0, 0)[3], lessThan(20));
     expect(px(size - 1, size - 1)[3], lessThan(40));
     image.dispose();
+  });
+
+  test('hover lightens and a press darkens the surface', () async {
+    Future<List<int>> centre({double hover = 0, bool pressed = false}) async {
+      final recorder = ui.PictureRecorder();
+      LiquidFabPainter(
+        progress: 0,
+        style: const LiquidFabStyle.crimson(),
+        hover: hover,
+        pressed: pressed,
+      ).paint(Canvas(recorder), const Size(100, 100));
+      final image = await recorder.endRecording().toImage(100, 100);
+      final bytes = (await image.toByteData())!;
+      image.dispose();
+      const i = (50 * 100 + 50) * 4;
+      return [for (var k = 0; k < 3; k++) bytes.getUint8(i + k)];
+    }
+
+    int sum(List<int> c) => c.reduce((a, b) => a + b);
+    final rest = sum(await centre());
+    expect(sum(await centre(hover: 1)), greaterThan(rest));
+    expect(sum(await centre(pressed: true)), lessThan(rest));
   });
 
   test('paints nothing when padding swallows the canvas', () async {

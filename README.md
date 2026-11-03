@@ -1,9 +1,9 @@
 # liquid_fab
 
 A floating action button drawn as a glossy liquid ball. Its edge ripples with
-slow travelling waves, it breathes, and it glows. Everything about it can be
-changed: size, motion, wave shape, colours, halo, shadow, gloss, rim and
-interaction.
+slow travelling waves and it glows; the ball itself never changes size.
+Everything about it can be changed: size, motion, wave shape, colours, halo,
+hover and press light, gloss, rim, an optional shadow and interaction.
 
 <!-- TODO(media): replace with a recorded GIF of the presets. -->
 ![liquid_fab presets](doc/presets.gif)
@@ -12,12 +12,14 @@ interaction.
 ![liquid_fab playground](doc/playground.png)
 
 * Round, but alive: the edge is a circle nudged by a few shallow sine waves.
-  Every wave and the breath complete a whole number of cycles per loop, so
-  the animation never shows a seam.
-* Layered like a real object: diffused halo, floating shadow, lit
-  radial-gradient surface, glossy highlight and an illuminated rim.
-* Behaves like a button: hover and press scale, haptics, keyboard activation,
-  semantics, tooltip, and an animated swap to a close icon when `open`.
+  Every wave completes a whole number of cycles per loop, so the animation
+  never shows a seam. The size stays fixed; an opt-in breath can swell it.
+* Layered like a real object: diffused halo, lit radial-gradient surface,
+  glossy highlight and an illuminated rim, with an optional drop shadow.
+* Behaves like a button: hover brightens the halo and lightens the surface,
+  a press darkens it, plus haptics, keyboard activation, semantics, tooltip,
+  a fade in and out with `visible`, and an animated swap to a close icon when
+  `open`. Hover and press scale are there if you want them.
 * Respects reduced motion by default.
 * No dependencies beyond Flutter.
 
@@ -42,7 +44,7 @@ Scaffold(
 );
 ```
 
-`LiquidFab` takes `diameter + 2 * padding` square (82×82 by default); the
+`LiquidFab` takes `diameter + 2 * padding` square (86×86 by default); the
 padding leaves room for the ripple, breath and halo. Because of that padding,
 pass a negative offset or a custom `FloatingActionButtonLocation` if you want
 the ball itself to sit exactly where a standard FAB would.
@@ -56,7 +58,7 @@ the ball itself to sit exactly where a standard FAB would.
 | `LiquidFabStyle.ocean()` | Clear mid blue. The default. |
 | `LiquidFabStyle.graphite()` | Neutral cool grey. |
 | `LiquidFabStyle.pearl()` | Light pearl with a dark icon. |
-| `LiquidFabStyle.fromColor(color)` | A four-stop ramp, halo, shadow and rim derived from one colour. |
+| `LiquidFabStyle.fromColor(color)` | A four-stop ramp, halo and rim derived from one colour. |
 
 Every preset is a plain `LiquidFabStyle`, so tweak it with `copyWith`:
 
@@ -87,7 +89,7 @@ LiquidFab(
 
 `speed` is an `int` on purpose: whole cycles per loop keep the loop seamless.
 Keep `coreRatio + Σ depth` at or below 1 so the edge stays inside the box.
-Depths of around 0.01 already read as liquid on a 60px ball; past 0.05 it
+Depths of around 0.01 already read as liquid on a 66px ball; past 0.05 it
 starts to look like a blob.
 
 ## Animating the style
@@ -107,13 +109,14 @@ CustomPaint(
   painter: LiquidFabPainter(
     progress: controller.value,
     style: const LiquidFabStyle.pearl(),
-    hover: 0,
+    hover: 0,        // 0..1
+    pressed: false,
     padding: 10,
   ),
 )
 ```
 
-The breath is not part of the painting; apply
+The opt-in breath is not part of the painting; apply
 `Transform.scale(scale: style.breathScaleAt(progress))` if you want it.
 `LiquidFabPainter.edgePath` returns the outline on its own.
 
@@ -126,15 +129,20 @@ The breath is not part of the painting; apply
 | `child` | `Widget?` | chat bubble icon | What sits on the ball while closed. Icons and text take `style.iconColor`. |
 | `openChild` | `Widget?` | close icon | What sits on the ball while open. |
 | `style` | `LiquidFabStyle` | `LiquidFabStyle()` (ocean) | The look. Changes animate. |
-| `diameter` | `double` | `62` | Ball diameter at rest. |
+| `diameter` | `double` | `66` | Ball diameter. |
 | `padding` | `double` | `10` | Room on each side for ripple, breath and halo. |
-| `loopDuration` | `Duration` | 9 s | One full ripple loop. Shorter is faster. |
+| `loopDuration` | `Duration` | 7.5 s | One full ripple loop. Shorter is faster. |
 | `playing` | `bool` | `true` | False holds the current frame. |
 | `respectReduceMotion` | `bool` | `true` | Hold still when the platform asks for reduced motion. |
-| `hoverScale` | `double` | `1.06` | Scale while hovered or focused. |
-| `pressScale` | `double` | `0.93` | Scale while pressed. |
-| `scaleDuration` | `Duration` | 160 ms | Hover/press scale and hover glow duration. |
-| `scaleCurve` | `Curve` | `Curves.easeOutCubic` | Hover/press scale curve. |
+| `visible` | `bool` | `true` | Fades the button in and out; hidden, it ignores input, focus and semantics and stops its ripple. |
+| `visibilityDuration` | `Duration` | 200 ms | Fade duration. |
+| `visibilityCurve` | `Curve` | `Curves.easeOut` | Fade curve. |
+| `hoverDuration` | `Duration` | 200 ms | How long the hover light takes to come up or die down. |
+| `hoverCurve` | `Curve` | `Curves.easeOutCubic` | Hover light curve. |
+| `hoverScale` | `double` | `1` | Opt-in scale while hovered or focused. |
+| `pressScale` | `double` | `1` | Opt-in scale while pressed. |
+| `scaleDuration` | `Duration` | 160 ms | Opt-in hover/press scale duration. |
+| `scaleCurve` | `Curve` | `Curves.easeOutCubic` | Opt-in hover/press scale curve. |
 | `swapDuration` | `Duration` | 220 ms | `child` ↔ `openChild` swap duration. |
 | `swapTransitionBuilder` | `AnimatedSwitcherTransitionBuilder` | `LiquidFab.spinFadeTransition` | The swap transition. |
 | `styleDuration` | `Duration` | 300 ms | Style change duration. `Duration.zero` jumps. |
@@ -156,18 +164,22 @@ The breath is not part of the painting; apply
 | `gradientCenter` | `Alignment` | `(-0.35, -0.45)` | Where the light hits. |
 | `gradientRadius` | `double` | `1.3` | Radial gradient radius. |
 | `coreRatio` | `double` | `0.97` | Resting edge radius as a fraction of the available radius. |
-| `waves` | `List<LiquidWave>` | `defaultWaves` | Travelling waves on the edge. Empty for a circle. |
+| `waves` | `List<LiquidWave>` | `defaultWaves` (3/4/2 lobes, depths 0.013/0.008/0.0045, speeds +2/−2/+1) | Travelling waves on the edge. Empty for a circle. |
 | `pointCount` | `int` | `240` | Points tracing the edge. |
-| `breathAmount` | `double` | `0.025` | Swell as a fraction of size (±2.5%). `0` turns it off. |
+| `breathAmount` | `double` | `0` | Opt-in swell as a fraction of size (`0.025` is ±2.5%). |
 | `breathCycles` | `int` | `2` | Breaths per loop. |
 | `haloColor` | `Color?` | `colors[1]` | Glow colour. |
 | `haloOpacity` | `double` | `0.38` | Glow opacity. `0` turns it off. |
 | `haloBlur` | `double` | `22` | Glow blur sigma. |
-| `haloHoverBoost` | `double` | `1.35` | Glow opacity multiplier on hover. |
-| `showShadow` | `bool` | `true` | Draw the floating shadow. |
+| `haloHoverBoost` | `double` | `1.35` | Glow opacity multiplier when fully hovered. |
+| `hoverOverlayColor` | `Color` | white | Wash over the surface on hover. |
+| `hoverOverlayOpacity` | `double` | `0.07` | Hover wash opacity when fully hovered. |
+| `pressOverlayColor` | `Color` | black | Wash over the surface while pressed. |
+| `pressOverlayOpacity` | `double` | `0.12` | Press wash opacity. |
+| `showShadow` | `bool` | `false` | Draw a floating drop shadow. |
 | `shadowColor` | `Color?` | second-darkest colour | Shadow colour. |
 | `elevation` | `double` | `16` | Shadow elevation at rest. |
-| `hoverElevation` | `double` | `20` | Shadow elevation on hover. |
+| `hoverElevation` | `double` | `16` | Shadow elevation when fully hovered. |
 | `showGloss` | `bool` | `true` | Draw the glossy highlight. |
 | `glossColor` | `Color` | white | Highlight colour. |
 | `glossOpacity` | `double` | `0.34` | Highlight peak opacity. |

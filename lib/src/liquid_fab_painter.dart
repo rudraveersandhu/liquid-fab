@@ -6,8 +6,9 @@ import 'package:flutter/rendering.dart';
 import 'liquid_fab_style.dart';
 
 /// Paints one frame of the liquid ball: a circle whose edge is nudged by the
-/// style's travelling waves, drawn in layers (diffused halo, floating shadow,
-/// lit radial-gradient surface, glossy highlight, illuminated rim).
+/// style's travelling waves, drawn in layers (diffused halo, optional
+/// shadow, lit radial-gradient surface, hover or press overlay, glossy
+/// highlight, illuminated rim).
 ///
 /// Use it on its own with a [CustomPaint] if you want only the drawing and
 /// will drive [progress] yourself. The breath is not part of the painting;
@@ -19,6 +20,7 @@ class LiquidFabPainter extends CustomPainter {
     required this.progress,
     this.style = const LiquidFabStyle(),
     this.hover = 0,
+    this.pressed = false,
     this.padding = 10,
   }) : assert(hover >= 0 && hover <= 1, 'hover must be in [0, 1]'),
        assert(padding >= 0, 'padding must be zero or more'),
@@ -32,8 +34,14 @@ class LiquidFabPainter extends CustomPainter {
   final LiquidFabStyle style;
 
   /// How hovered the ball is, from 0 (at rest) to 1 (fully hovered). Raises
-  /// the halo and the shadow.
+  /// the halo, lightens the surface and, if a shadow is on, moves it toward
+  /// [LiquidFabStyle.hoverElevation].
   final double hover;
+
+  /// Whether the ball is pressed. Darkens the surface with
+  /// [LiquidFabStyle.pressOverlayColor]; takes precedence over [hover]'s
+  /// overlay.
+  final bool pressed;
 
   /// Room left on each side of the canvas for the halo and the ripple, in
   /// logical pixels. The ball's radius is half the shortest side minus this.
@@ -89,7 +97,7 @@ class LiquidFabPainter extends CustomPainter {
       );
     }
 
-    // 2. Soft floating shadow.
+    // 2. Optional floating shadow.
     if (s.showShadow) {
       final elevation = lerpDouble(s.elevation, s.hoverElevation, hover)!;
       if (elevation > 0) {
@@ -109,7 +117,18 @@ class LiquidFabPainter extends CustomPainter {
         ).createShader(Rect.fromCircle(center: center, radius: radius * 1.5)),
     );
 
-    // 4. Glossy highlight: what makes it a sphere rather than a disc.
+    // 4. Hover lightens the surface; a press darkens it.
+    final overlay =
+        pressed
+            ? s.pressOverlayColor.withValues(
+              alpha: s.pressOverlayColor.a * s.pressOverlayOpacity,
+            )
+            : s.hoverOverlayColor.withValues(
+              alpha: s.hoverOverlayColor.a * s.hoverOverlayOpacity * hover,
+            );
+    if (overlay.a > 0) canvas.drawPath(path, Paint()..color = overlay);
+
+    // 5. Glossy highlight: what makes it a sphere rather than a disc.
     if (s.showGloss && s.glossOpacity > 0) {
       final gloss = Rect.fromCenter(
         center: center + s.glossOffset * radius,
@@ -131,7 +150,7 @@ class LiquidFabPainter extends CustomPainter {
       }
     }
 
-    // 5. A thin illuminated rim.
+    // 6. A thin illuminated rim.
     if (s.rimWidth > 0 && s.rimOpacity > 0) {
       final c = s.effectiveRimColor;
       canvas.drawPath(
@@ -148,6 +167,7 @@ class LiquidFabPainter extends CustomPainter {
   bool shouldRepaint(LiquidFabPainter oldDelegate) =>
       oldDelegate.progress != progress ||
       oldDelegate.hover != hover ||
+      oldDelegate.pressed != pressed ||
       oldDelegate.padding != padding ||
       oldDelegate.style != style;
 }
