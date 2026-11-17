@@ -4,7 +4,8 @@ description: >-
   with seamless travelling waves. Fully customisable shape, motion, colours,
   halo, shadow, gloss and rim.
 version: 0.1.0
-# TODO(release): set homepage/repository once the package has a public repo.
+repository: https://github.com/rudraveersandhu/liquid-fab
+issue_tracker: https://github.com/rudraveersandhu/liquid-fab/issues
 topics:
   - fab
   - button
