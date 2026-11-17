@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:liquid_fab/liquid_fab.dart';
 
 void main() => runApp(const ExampleApp());
@@ -29,6 +30,23 @@ final _presets = <String, LiquidFabStyle>{
   'pearl': const LiquidFabStyle.pearl(),
   'fromColor(teal)': LiquidFabStyle.fromColor(const Color(0xFF0F766E)),
 };
+
+/// How each preset is written in Dart, for the code snippet.
+const _presetCode = <String, String>{
+  'crimson': 'const LiquidFabStyle.crimson()',
+  'ink': 'const LiquidFabStyle.ink()',
+  'ocean': 'const LiquidFabStyle.ocean()',
+  'graphite': 'const LiquidFabStyle.graphite()',
+  'pearl': 'const LiquidFabStyle.pearl()',
+  'fromColor(teal)': 'LiquidFabStyle.fromColor(const Color(0xFF0F766E))',
+};
+
+/// A number as short as it can be at three decimals: 0.380 -> 0.38.
+String _num(double v) {
+  var t = v.toStringAsFixed(3);
+  if (t.contains('.')) t = t.replaceFirst(RegExp(r'\.?0+$'), '');
+  return t.contains('.') ? t : '$t.0';
+}
 
 class _Home extends StatefulWidget {
   const _Home();
@@ -82,6 +100,64 @@ class _HomeState extends State<_Home> {
     );
   }
 
+  /// The Dart that builds the stage's ball: only what differs from the
+  /// preset and the widget's defaults.
+  String get _code {
+    final base = _presets[_preset]!;
+    final style = <String>[];
+    void num(String name, double value, double preset) {
+      if (_num(value) != _num(preset)) style.add('$name: ${_num(value)}');
+    }
+
+    num('coreRatio', _core, base.coreRatio);
+    if (_num(_waveScale) != '1.0') {
+      style.add(
+        'waves: [\n      for (final w in LiquidFabStyle.defaultWaves)\n'
+        '        w.scaled(${_num(_waveScale)}),\n    ]',
+      );
+    }
+    num('breathAmount', _breath, base.breathAmount);
+    num('haloOpacity', _haloOpacity, base.haloOpacity);
+    num('haloBlur', _haloBlur, base.haloBlur);
+    num('hoverOverlayOpacity', _hoverLight, base.hoverOverlayOpacity);
+    num('pressOverlayOpacity', _pressDark, base.pressOverlayOpacity);
+    if (_shadow != base.showShadow) style.add('showShadow: $_shadow');
+    if (_shadow) {
+      num('elevation', _elevation, base.elevation);
+      num('hoverElevation', _elevation, base.hoverElevation);
+    }
+    if (_gloss != base.showGloss) style.add('showGloss: $_gloss');
+    if (_gloss) num('glossOpacity', _glossOpacity, base.glossOpacity);
+    num('rimWidth', _rimWidth, base.rimWidth);
+
+    var preset = _presetCode[_preset]!;
+    if (style.isNotEmpty) {
+      // copyWith isn't const, so the preset loses its const.
+      preset = preset.replaceFirst('const ', '');
+      preset = '$preset.copyWith(\n    ${style.join(',\n    ')},\n  )';
+    }
+
+    final args = <String>['style: $preset'];
+    if (_num(_diameter) != '66.0') args.add('diameter: ${_num(_diameter)}');
+    if (_num(_loopSeconds) != '7.5') {
+      args.add(
+        'loopDuration: const Duration(milliseconds: '
+        '${(_loopSeconds * 1000).round()})',
+      );
+    }
+    if (!_playing) args.add('playing: false');
+    if (!_respectReduceMotion) args.add('respectReduceMotion: false');
+    if (!_haptics) args.add('enableHaptics: false');
+    if (_num(_hoverScale) != '1.0') {
+      args.add('hoverScale: ${_num(_hoverScale)}');
+    }
+    if (_num(_pressScale) != '1.0') {
+      args.add('pressScale: ${_num(_pressScale)}');
+    }
+    args.add('onTap: () {}');
+    return 'LiquidFab(\n  ${args.join(',\n  ')},\n)';
+  }
+
   void _pickPreset(String name) {
     final s = _presets[name]!;
     setState(() {
@@ -127,6 +203,7 @@ class _HomeState extends State<_Home> {
             ),
           );
           final controls = _controls(theme);
+          final code = _CodePanel(code: _code);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -152,7 +229,11 @@ class _HomeState extends State<_Home> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: stage),
+                    Expanded(
+                      child: Column(
+                        children: [stage, const SizedBox(height: 16), code],
+                      ),
+                    ),
                     const SizedBox(width: 16),
                     Expanded(child: controls),
                   ],
@@ -161,6 +242,8 @@ class _HomeState extends State<_Home> {
                 stage,
                 const SizedBox(height: 16),
                 controls,
+                const SizedBox(height: 16),
+                code,
               ],
             ],
           );
@@ -257,6 +340,58 @@ class _Stage extends StatelessWidget {
     alignment: Alignment.center,
     child: child,
   );
+}
+
+/// The Dart for the current settings, with a copy button.
+class _CodePanel extends StatelessWidget {
+  const _CodePanel({required this.code});
+
+  final String code;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Code', style: Theme.of(context).textTheme.titleSmall),
+              const Spacer(),
+              TextButton.icon(
+                icon: const Icon(Icons.copy_rounded, size: 18),
+                label: const Text('Copy'),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: code));
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      const SnackBar(content: Text('Copied to the clipboard')),
+                    );
+                },
+              ),
+            ],
+          ),
+          SelectableText(
+            code,
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              fontFamilyFallback: ['Menlo', 'Consolas', 'Courier New'],
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PresetTile extends StatelessWidget {

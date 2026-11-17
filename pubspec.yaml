@@ -3,7 +3,8 @@ description: >-
   A floating action button drawn as a glossy liquid ball whose edge ripples
   with seamless travelling waves. Fully customisable shape, motion, colours,
   halo, shadow, gloss and rim.
-version: 0.1.0
+version: 0.1.1
+homepage: https://rudraveersandhu.github.io/liquid-fab/
 repository: https://github.com/rudraveersandhu/liquid-fab
 issue_tracker: https://github.com/rudraveersandhu/liquid-fab/issues
 topics:

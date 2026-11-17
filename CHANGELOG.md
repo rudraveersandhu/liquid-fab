@@ -1,3 +1,10 @@
+## 0.1.1
+
+* Add a live demo at https://rudraveersandhu.github.io/liquid-fab/, linked from the README and as the
+  package homepage.
+* The example playground shows the Dart for the current settings, with a copy
+  button.
+
 ## 0.1.0
 
 * First release.

@@ -12,3 +12,9 @@ To regenerate the README's GIF and screenshot from these widgets (needs
 ```bash
 ./tool/make_readme_media.sh
 ```
+
+To rebuild the live demo and publish it to the `gh-pages` branch:
+
+```bash
+./tool/deploy_demo.sh
+```

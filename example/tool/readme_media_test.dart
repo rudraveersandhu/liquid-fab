@@ -61,6 +61,9 @@ void main() {
       'Roboto-Bold.ttf',
     ]);
     await _loadFont('MaterialIcons', ['MaterialIcons-Regular.otf']);
+    // The SDK ships no monospace font; the web build falls back to a sans
+    // face for the code panel too, so this matches what visitors see.
+    await _loadFont('monospace', ['Roboto-Regular.ttf']);
   });
 
   testWidgets('presets loop', (tester) async {
