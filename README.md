@@ -5,11 +5,7 @@ slow travelling waves and it glows; the ball itself never changes size.
 Everything about it can be changed: size, motion, wave shape, colours, halo,
 hover and press light, gloss, rim, an optional shadow and interaction.
 
-<!-- TODO(media): replace with a recorded GIF of the presets. -->
-![liquid_fab presets](doc/presets.gif)
-
-<!-- TODO(media): replace with a screenshot of the example playground. -->
-![liquid_fab playground](doc/playground.png)
+![The six presets rippling; crimson swaps to a close icon and ocean lights up on hover](https://raw.githubusercontent.com/rudraveersandhu/liquid-fab/main/doc/presets.gif)
 
 * Round, but alive: the edge is a circle nudged by a few shallow sine waves.
   Every wave completes a whole number of cycles per loop, so the animation
@@ -203,6 +199,8 @@ The opt-in breath is not part of the painting; apply
 
 [`example/`](example/) has the presets and a playground with sliders for every
 major setting:
+
+![The example app: preset tiles, a stage with the ball, and sliders](https://raw.githubusercontent.com/rudraveersandhu/liquid-fab/main/doc/playground.png)
 
 ```bash
 cd example
